@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyDash — Dashboards de estudio con IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav class="app-nav">
+  <a href="/" class="nav-brand">StudyDash</a>
+  <span class="nav-badge">Beta</span>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────── -->
+<section class="hero-section">
+  <div class="hero-eyebrow">
+    <span>✦</span>
+    Herramienta académica con IA
+  </div>
+  <h1 class="hero-title">
+    Tus apuntes en<br><em>dashboards de estudio</em>
+  </h1>
+  <p class="hero-sub">
+    Subí tus archivos académicos (PDF, Word, PowerPoint o texto) y generá automáticamente un dashboard visual completo, listo para estudiar, repasar y rendir.
+  </p>
+</section>
+
+<!-- ── UPLOAD CARD ──────────────────────────────────────────── -->
+<section class="upload-section">
+  <div class="upload-card">
+
+    <div class="upload-tabs">
+      <button class="upload-tab active" data-tab="files">Subir archivos</button>
+      <button class="upload-tab" data-tab="text">Pegar texto</button>
+    </div>
+
+    <!-- TAB: FILES -->
+    <div class="tab-content active" id="tab-files">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">📂</div>
+        <div class="drop-title">Arrastrá tus archivos acá</div>
+        <div class="drop-sub">o hacé click para seleccionarlos</div>
+        <div class="format-tags">
+          <span class="format-tag pdf">PDF</span>
+          <span class="format-tag word">Word</span>
+          <span class="format-tag ppt">PowerPoint</span>
+          <span class="format-tag txt">TXT</span>
+        </div>
+        <input type="file" id="fileInput" multiple
+               accept=".pdf,.docx,.doc,.pptx,.ppt,.txt">
+      </div>
+
+      <div class="file-list" id="fileList"></div>
+
+      <button class="submit-btn" id="submitFiles" disabled>
+        <span class="btn-icon">✦</span>
+        Generar Dashboard
+      </button>
+    </div>
+
+    <!-- TAB: TEXT -->
+    <div class="tab-content" id="tab-text">
+      <textarea
+        class="text-input"
+        id="textInput"
+        placeholder="Pegá acá el contenido académico: apuntes, resúmenes, definiciones, texto de libros...
+
+Puede ser desordenado, en distintos formatos, de distintas fuentes del mismo tema.
+El mínimo recomendado es ~300 palabras para generar un dashboard útil."
+      ></textarea>
+      <div class="text-count" id="textCount">0 caracteres</div>
+
+      <button class="submit-btn" id="submitText" disabled>
+        <span class="btn-icon">✦</span>
+        Generar Dashboard
+      </button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── FEATURES ─────────────────────────────────────────────── -->
+<section class="features">
+  <div class="feature-card">
+    <div class="feature-icon">📋</div>
+    <div class="feature-title">Conceptos clave</div>
+    <div class="feature-desc">Extrae y organiza los conceptos más importantes con definiciones claras</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">⇄</div>
+    <div class="feature-title">Comparaciones</div>
+    <div class="feature-desc">Contrasta conceptos que suelen confundirse en tablas visuales</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">→</div>
+    <div class="feature-title">Procesos</div>
+    <div class="feature-desc">Muestra etapas y secuencias lógicas como línea de tiempo</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">?</div>
+    <div class="feature-title">Autoevaluación</div>
+    <div class="feature-desc">Genera preguntas tipo parcial con respuestas completas</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">⚠</div>
+    <div class="feature-title">Errores comunes</div>
+    <div class="feature-desc">Identifica las confusiones más frecuentes y cómo evitarlas</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">★</div>
+    <div class="feature-title">Resumen ejecutivo</div>
+    <div class="feature-desc">5 puntos críticos para repasar 5 minutos antes del examen</div>
+  </div>
+</section>
+
+<!-- ── FOOTER ───────────────────────────────────────────────── -->
+<footer>
+  StudyDash · Herramienta académica con IA · Powered by Claude
+</footer>
+
+<!-- ── PROCESSING OVERLAY ───────────────────────────────────── -->
+<div class="processing-overlay" id="processingOverlay">
+  <div class="processing-card">
+    <div class="processing-spinner"></div>
+    <div class="processing-title">Generando tu dashboard</div>
+    <div class="processing-msg" id="processingMsg">Iniciando análisis...</div>
+    <div class="processing-steps" id="processingSteps"></div>
+  </div>
+</div>
+
+<!-- ── TOAST ────────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script src="/js/upload.js"></script>
+</body>
+</html>
