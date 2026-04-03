@@ -38,8 +38,10 @@ async function processDashboard(extractedFiles, onProgress) {
 
   let fullText = '';
 
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+
   const stream = client.messages.stream({
-    model: 'claude-opus-4-6',
+    model,
     max_tokens: 16000,
     thinking: { type: 'adaptive' },
     system: SYSTEM_PROMPT,
