@@ -299,6 +299,66 @@ body { background:var(--page-bg); font-family:var(--dm); color:var(--text) }
   .top-nav       { padding:0 1rem }
 }
 
+/* ─── EXPORT DROPDOWN ───────────────────────────────────────── */
+.export-dropdown { position:relative }
+.export-btn {
+  font-size:11px; font-weight:400; padding:3px 10px; border-radius:20px;
+  border:0.5px solid var(--border); color:var(--muted); background:none;
+  cursor:pointer; font-family:var(--dm); display:flex; align-items:center;
+  gap:5px; transition:all 0.15s; white-space:nowrap;
+}
+.export-btn:hover { color:var(--text) }
+.export-btn.open  { border-color:var(--accent); color:var(--accent) }
+.export-menu {
+  display:none; position:absolute; right:0; top:calc(100% + 8px);
+  background:var(--card-bg); border:0.5px solid var(--border);
+  border-radius:var(--radius-sm); box-shadow:0 4px 24px rgba(0,0,0,0.10);
+  min-width:180px; z-index:200; overflow:hidden;
+}
+.export-menu.open { display:block }
+.export-menu-item {
+  display:flex; align-items:center; gap:10px; padding:0.65rem 1rem;
+  font-size:12px; color:var(--text); cursor:pointer; background:none;
+  border:none; border-bottom:0.5px solid var(--border); width:100%;
+  font-family:var(--dm); text-align:left; transition:background 0.1s;
+}
+.export-menu-item:last-child { border-bottom:none }
+.export-menu-item:hover { background:var(--page-bg) }
+.export-menu-icon { font-size:13px; flex-shrink:0; width:18px; text-align:center }
+.export-menu-label { flex:1 }
+.export-menu-hint  { font-size:10px; color:var(--muted) }
+
+/* ─── PRINT / PDF ───────────────────────────────────────────── */
+@media print {
+  * { -webkit-print-color-adjust:exact; print-color-adjust:exact }
+  @page { margin:1.5cm; size:A4 }
+  body { background:#fff !important }
+
+  /* Hide interactive chrome */
+  .top-nav, .export-dropdown, .back-btn { display:none !important }
+
+  /* Undo sticky nav */
+  .hero { position:static !important }
+
+  /* Expand all collapsed content */
+  .tab-panel     { display:block !important }
+  .quiz-a        { max-height:none !important; padding:0.75rem 1.25rem 1rem !important; border-top-color:var(--border) !important }
+  .collapsible-body { max-height:none !important }
+
+  /* Avoid breaking mid-card */
+  .section           { break-inside:avoid; page-break-inside:avoid; margin-bottom:1.5rem }
+  .timeline-content,
+  .concept-card,
+  .card,
+  .error-item,
+  .quiz-item,
+  .exec-point        { break-inside:avoid; page-break-inside:avoid }
+
+  /* Section spacing */
+  .main { padding:1rem }
+  .hero { border-bottom:1px solid #ddd; padding:1.5rem 2rem 1.25rem }
+}
+
 /* ─── NO DATA STATE ─────────────────────────────────────────── */
 .no-data {
   display:flex; flex-direction:column; align-items:center; justify-content:center;

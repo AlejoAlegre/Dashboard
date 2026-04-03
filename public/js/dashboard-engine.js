@@ -58,6 +58,9 @@ const MODULE_ORDER = [
   'classify','map','authors','errors','quiz','exec',
 ];
 
+// Holds the parsed dashboard JSON — used by export functions
+let _dashboardData = null;
+
 // ── Helpers ───────────────────────────────────────────────────
 function esc(str) {
   if (!str) return '';
@@ -485,6 +488,28 @@ function buildNav(data) {
       <div class="nav-right">
         ${context ? `<span class="pill-badge pill-outline" id="navContext">${esc(context)}</span>` : ''}
         <span class="pill-badge pill-primary">Listo para estudiar</span>
+        <div class="export-dropdown" onclick="event.stopPropagation()">
+          <button class="export-btn" id="exportBtn" onclick="toggleExportMenu(event)">
+            ↓ Descargar
+          </button>
+          <div class="export-menu" id="exportMenu">
+            <button class="export-menu-item" onclick="exportPDF()">
+              <span class="export-menu-icon">🖨</span>
+              <span class="export-menu-label">PDF</span>
+              <span class="export-menu-hint">imprimir / guardar</span>
+            </button>
+            <button class="export-menu-item" onclick="exportHTML()">
+              <span class="export-menu-icon">◻</span>
+              <span class="export-menu-label">HTML completo</span>
+              <span class="export-menu-hint">con diseño</span>
+            </button>
+            <button class="export-menu-item" onclick="exportJSON()">
+              <span class="export-menu-icon">{}</span>
+              <span class="export-menu-label">JSON</span>
+              <span class="export-menu-hint">estructura raw</span>
+            </button>
+          </div>
+        </div>
         <button class="back-btn" onclick="window.location='/'">← Nuevo</button>
       </div>
     </nav>`;
@@ -591,12 +616,129 @@ function toggleCollapsible(header) {
   arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
+// ── EXPORT ────────────────────────────────────────────────────
+
+let _exportMenuOpen = false;
+
+function toggleExportMenu(event) {
+  event && event.stopPropagation();
+  _exportMenuOpen = !_exportMenuOpen;
+  document.getElementById('exportMenu')?.classList.toggle('open', _exportMenuOpen);
+  document.getElementById('exportBtn')?.classList.toggle('open', _exportMenuOpen);
+}
+
+document.addEventListener('click', () => {
+  if (!_exportMenuOpen) return;
+  _exportMenuOpen = false;
+  document.getElementById('exportMenu')?.classList.remove('open');
+  document.getElementById('exportBtn')?.classList.remove('open');
+});
+
+function _slugify(str) {
+  return (str || 'dashboard')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 50);
+}
+
+function _triggerDownload(filename, mimeType, content) {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: filename });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Export: JSON ──────────────────────────────────────────────
+function exportJSON() {
+  toggleExportMenu();
+  if (!_dashboardData) return;
+  const slug = _slugify(_dashboardData.hero?.title);
+  _triggerDownload(
+    `studydash-${slug}.json`,
+    'application/json',
+    JSON.stringify(_dashboardData, null, 2)
+  );
+}
+
+// ── Export: PDF (print dialog) ────────────────────────────────
+function exportPDF() {
+  toggleExportMenu();
+
+  // Expand collapsed elements so everything shows in print
+  const closedQuiz = [...document.querySelectorAll('.quiz-a:not(.open)')];
+  const closedColl = [...document.querySelectorAll('.collapsible-body:not(.open)')];
+  closedQuiz.forEach(a => a.classList.add('open'));
+  closedColl.forEach(b => b.classList.add('open'));
+  document.querySelectorAll('.quiz-arrow').forEach(a => a.style.transform = 'rotate(180deg)');
+
+  window.print();
+
+  // Restore state after the print dialog closes
+  window.addEventListener('afterprint', () => {
+    closedQuiz.forEach(a => a.classList.remove('open'));
+    closedColl.forEach(b => b.classList.remove('open'));
+    document.querySelectorAll('.quiz-arrow').forEach(a => a.style.transform = '');
+  }, { once: true });
+}
+
+// ── Export: standalone HTML ───────────────────────────────────
+async function exportHTML() {
+  toggleExportMenu();
+  if (!_dashboardData) return;
+
+  let css = '';
+  try {
+    css = await fetch('/css/dashboard.css').then(r => r.text());
+  } catch (_) { /* proceed without fetched CSS — fonts still load */ }
+
+  const slug    = _slugify(_dashboardData.hero?.title);
+  const appHtml = document.getElementById('app').innerHTML;
+  const title   = document.title;
+
+  // Minimal self-contained JS for interactivity in the exported file
+  const inlineJS = `
+(function(){
+function scrollToSection(btn){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');var t=document.getElementById(btn.dataset.target);if(t)window.scrollTo({top:t.getBoundingClientRect().top+scrollY-60,behavior:'smooth'});}
+function switchTab(btn,id){btn.closest('.tabs-bar').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');btn.closest('.section').querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var p=document.getElementById(id);if(p)p.classList.add('active');}
+function toggleQuiz(el){var a=el.nextElementSibling,ar=el.querySelector('.quiz-arrow'),o=a.classList.contains('open');a.classList.toggle('open',!o);if(ar)ar.style.transform=o?'':'rotate(180deg)';}
+function toggleCollapsible(h){var b=h.nextElementSibling,ar=h.querySelector('.collapsible-arrow'),o=b.classList.contains('open');b.classList.toggle('open',!o);if(ar)ar.style.transform=o?'':'rotate(180deg)';}
+window.scrollToSection=scrollToSection;window.switchTab=switchTab;window.toggleQuiz=toggleQuiz;window.toggleCollapsible=toggleCollapsible;
+window.addEventListener('scroll',function(){var s=document.querySelectorAll('.section[data-module]'),a=null;s.forEach(function(x){if(x.getBoundingClientRect().top<=80)a=x.dataset.module;});if(a)document.querySelectorAll('.nav-tab').forEach(function(b){b.classList.toggle('active',b.dataset.target==='sec-'+a);});},{passive:true});
+})();
+  `.trim();
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+${css}
+/* Standalone: hide export menu */
+.export-dropdown { display:none !important }
+</style>
+</head>
+<body>
+<div id="app">${appHtml}</div>
+<script>${inlineJS}<\/script>
+</body>
+</html>`;
+
+  _triggerDownload(`studydash-${slug}.html`, 'text/html;charset=utf-8', html);
+}
+
 // ── BOOT ──────────────────────────────────────────────────────
 (function boot() {
   const raw = sessionStorage.getItem('studydash_data');
   if (!raw) return renderNoData();
   try {
     const data = JSON.parse(raw);
+    _dashboardData = data;
     renderDashboard(data);
   } catch (e) {
     console.error('Error parsing dashboard data:', e);
