@@ -662,25 +662,77 @@ function exportJSON() {
   );
 }
 
-// ── Export: PDF (print dialog) ────────────────────────────────
-function exportPDF() {
+// ── Export: PDF (server-side via Puppeteer) ───────────────────
+async function exportPDF() {
   toggleExportMenu();
+  if (!_dashboardData) return;
 
-  // Expand collapsed elements so everything shows in print
-  const closedQuiz = [...document.querySelectorAll('.quiz-a:not(.open)')];
-  const closedColl = [...document.querySelectorAll('.collapsible-body:not(.open)')];
-  closedQuiz.forEach(a => a.classList.add('open'));
-  closedColl.forEach(b => b.classList.add('open'));
-  document.querySelectorAll('.quiz-arrow').forEach(a => a.style.transform = 'rotate(180deg)');
+  const btn = document.getElementById('exportBtn');
+  const original = btn.innerHTML;
+  btn.innerHTML = '⋯ Generando PDF';
+  btn.disabled = true;
 
-  window.print();
+  try {
+    let css = '';
+    try { css = await fetch('/css/dashboard.css').then(r => r.text()); } catch (_) {}
 
-  // Restore state after the print dialog closes
-  window.addEventListener('afterprint', () => {
-    closedQuiz.forEach(a => a.classList.remove('open'));
-    closedColl.forEach(b => b.classList.remove('open'));
-    document.querySelectorAll('.quiz-arrow').forEach(a => a.style.transform = '');
-  }, { once: true });
+    const slug  = _slugify(_dashboardData.hero?.title);
+    const title = document.title;
+
+    // CSS overrides that expand everything and strip interactive chrome
+    const printCSS = `
+      .top-nav, .export-dropdown, .back-btn { display:none !important }
+      .tab-panel        { display:block !important }
+      .quiz-a           { max-height:none !important; padding:.75rem 1.25rem 1rem !important; border-top-color:rgba(0,0,0,.08) !important }
+      .collapsible-body { max-height:none !important }
+      .section          { break-inside:avoid; page-break-inside:avoid; margin-bottom:1.5rem }
+      .timeline-content,.concept-card,.card,.error-item,.quiz-item,.exec-point
+                        { break-inside:avoid; page-break-inside:avoid }
+      body              { background:#fff !important }
+      * { -webkit-print-color-adjust:exact; print-color-adjust:exact }
+    `;
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>${css}${printCSS}</style>
+</head>
+<body><div id="app">${document.getElementById('app').innerHTML}</div></body>
+</html>`;
+
+    const res = await fetch('/api/export/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html, filename: `studydash-${slug}` }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Error del servidor (${res.status})`);
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), {
+      href: url, download: `studydash-${slug}.pdf`,
+    });
+    a.click();
+    URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error('PDF export error:', err);
+    // Graceful fallback to browser print dialog
+    alert(`No se pudo generar el PDF automáticamente: ${err.message}\n\nSe abrirá el diálogo de impresión como alternativa.`);
+    window.print();
+  } finally {
+    btn.innerHTML = original;
+    btn.disabled = false;
+  }
 }
 
 // ── Export: standalone HTML ───────────────────────────────────

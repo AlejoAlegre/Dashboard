@@ -7,6 +7,7 @@ const path     = require('path');
 
 const { extractText }       = require('./src/extractors');
 const { processDashboard }  = require('./src/processor');
+const { generatePDF }       = require('./src/pdf-export');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -142,6 +143,23 @@ app.post('/api/process-text', async (req, res) => {
   } catch (err) {
     send('error', { message: err.message || 'Error interno.' });
     res.end();
+  }
+});
+
+// ── PDF export ────────────────────────────────────────────────
+app.post('/api/export/pdf', async (req, res) => {
+  const { html, filename } = req.body || {};
+  if (!html) return res.status(400).json({ error: 'HTML requerido.' });
+
+  try {
+    const pdf = await generatePDF(html);
+    const safe = (filename || 'studydash').replace(/[^a-z0-9-_]/gi, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${safe}.pdf"`);
+    res.send(pdf);
+  } catch (err) {
+    console.error('PDF generation error:', err);
+    res.status(500).json({ error: 'No se pudo generar el PDF: ' + err.message });
   }
 });
 
